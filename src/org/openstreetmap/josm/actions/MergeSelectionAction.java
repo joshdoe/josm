@@ -8,10 +8,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.util.Collection;
 import java.util.List;
+import org.openstreetmap.josm.Main;
+import org.openstreetmap.josm.command.MergeCommand;
 
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
-import org.openstreetmap.josm.data.osm.visitor.MergeSourceBuildingVisitor;
 import org.openstreetmap.josm.gui.dialogs.LayerListDialog;
 import org.openstreetmap.josm.gui.layer.Layer;
 import org.openstreetmap.josm.gui.layer.OsmDataLayer;
@@ -44,10 +45,12 @@ public class MergeSelectionAction extends AbstractMergeAction {
                 return;
             }
         }
-        MergeSourceBuildingVisitor builder = new MergeSourceBuildingVisitor(getEditLayer().data);
-        ((OsmDataLayer)targetLayer).mergeFrom(builder.build());
+        
+        MergeCommand cmd = new MergeCommand((OsmDataLayer)targetLayer, getEditLayer().data, true);
+        Main.main.undoRedo.add(cmd);
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
         if (getEditLayer() == null || getEditLayer().data.getSelected().isEmpty())
             return;

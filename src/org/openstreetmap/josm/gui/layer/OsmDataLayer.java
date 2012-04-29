@@ -375,7 +375,7 @@ public class OsmDataLayer extends Layer implements Listener, SelectionChangedLis
      *
      * @param numNewConflicts the number of detected conflicts
      */
-    protected void warnNumNewConflicts(int numNewConflicts) {
+    public void warnNumNewConflicts(int numNewConflicts) {
         if (numNewConflicts == 0) return;
 
         String msg1 = trn(

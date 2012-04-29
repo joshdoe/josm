@@ -43,6 +43,14 @@ public class DataSetMerger {
      */
     private final Set<PrimitiveId> objectsWithChildrenToMerge;
     private final Set<OsmPrimitive> objectsToDelete;
+    
+    private final Map<OsmPrimitive, PrimitiveData> changedObjectsMap;
+    private final Set<OsmPrimitive> addedObjects;
+    
+    private enum UndoState {
+        INIT, MERGED, UNDONE, REDONE
+    }
+    private UndoState undoState;
 
     /**
      * constructor
@@ -61,6 +69,9 @@ public class DataSetMerger {
         mergedMap = new HashMap<PrimitiveId, PrimitiveId>();
         objectsWithChildrenToMerge = new HashSet<PrimitiveId>();
         objectsToDelete = new HashSet<OsmPrimitive>();
+        changedObjectsMap = new HashMap<OsmPrimitive, PrimitiveData>();
+        addedObjects = new HashSet<OsmPrimitive>();
+        undoState = UndoState.INIT;
     }
 
     /**
@@ -77,7 +88,7 @@ public class DataSetMerger {
      * @param <P>  the type of the other primitive
      * @param source  the other primitive
      */
-    protected void mergePrimitive(OsmPrimitive source, Collection<? extends OsmPrimitive> candidates) {
+        protected void mergePrimitive(OsmPrimitive source, Collection<? extends OsmPrimitive> candidates) {
         if (!source.isNew() ) {
             // try to merge onto a matching primitive with the same
             // defined id
@@ -107,6 +118,7 @@ public class DataSetMerger {
                     target.setTimestamp(source.getTimestamp());
                     target.setModified(source.isModified());
                     objectsWithChildrenToMerge.add(source.getPrimitiveId());
+                    changedObjectsMap.put(target, source.save());
                     return;
                 }
             }
@@ -126,6 +138,7 @@ public class DataSetMerger {
         targetDataSet.addPrimitive(target);
         mergedMap.put(source.getPrimitiveId(), target.getPrimitiveId());
         objectsWithChildrenToMerge.add(source.getPrimitiveId());
+        addedObjects.add(target);
     }
 
     protected OsmPrimitive getMergeTarget(OsmPrimitive mergeSource) throws IllegalStateException {
@@ -180,6 +193,7 @@ public class DataSetMerger {
                 if (referrers.isEmpty()) {
                     target.setDeleted(true);
                     target.mergeFrom(source);
+                    changedObjectsMap.put(target, source.save());
                     it.remove();
                     flag = true;
                 } else {
@@ -208,9 +222,11 @@ public class DataSetMerger {
                     ((Relation) osm).setMembers(null);
                 }
             }
-            for (OsmPrimitive osm: objectsToDelete) {
-                osm.setDeleted(true);
-                osm.mergeFrom(sourceDataSet.getPrimitiveById(osm.getPrimitiveId()));
+            for (OsmPrimitive target: objectsToDelete) {
+                OsmPrimitive source = sourceDataSet.getPrimitiveById(target.getPrimitiveId());
+                target.setDeleted(true);
+                target.mergeFrom(source);
+                changedObjectsMap.put(target, source.save());
             }
         }
     }
@@ -293,6 +309,7 @@ public class DataSetMerger {
             // => merge source into target
             //
             target.mergeFrom(source);
+            changedObjectsMap.put(target, source.save());
             objectsWithChildrenToMerge.add(source.getPrimitiveId());
         } else if (!target.isIncomplete() && source.isIncomplete()) {
             // target is complete and source is incomplete
@@ -318,6 +335,7 @@ public class DataSetMerger {
                 if (targetDataSet.getPrimitiveById(referrer.getPrimitiveId()) == null) {
                     conflicts.add(new Conflict<OsmPrimitive>(target, source, true));
                     target.setDeleted(false);
+                    changedObjectsMap.put(target, source.save());
                     break;
                 }
             }
@@ -330,22 +348,26 @@ public class DataSetMerger {
             // target not modified. We can assume that source is the most recent version.
             // clone it into target.
             target.mergeFrom(source);
+            changedObjectsMap.put(target, source.save());
             objectsWithChildrenToMerge.add(source.getPrimitiveId());
         } else if (! target.isModified() && !source.isModified() && target.getVersion() == source.getVersion()) {
             // both not modified. Merge nevertheless.
             // This helps when updating "empty" relations, see #4295
             target.mergeFrom(source);
+            changedObjectsMap.put(target, source.save());
             objectsWithChildrenToMerge.add(source.getPrimitiveId());
         } else if (! target.isModified() && !source.isModified() && target.getVersion() < source.getVersion()) {
             // my not modified but other is newer. clone other onto mine.
             //
             target.mergeFrom(source);
+            changedObjectsMap.put(target, source.save());
             objectsWithChildrenToMerge.add(source.getPrimitiveId());
         } else if (target.isModified() && ! source.isModified() && target.getVersion() == source.getVersion()) {
             // target is same as source but target is modified
             // => keep target and reset modified flag if target and source are semantically equal
             if (target.hasEqualSemanticAttributes(source)) {
                 target.setModified(false);
+                changedObjectsMap.put(target, source.save());
             }
         } else if (source.isDeleted() != target.isDeleted()) {
             // target is modified and deleted state differs.
@@ -363,6 +385,7 @@ public class DataSetMerger {
             // attributes should already be equal if we get here.
             //
             target.mergeFrom(source);
+            changedObjectsMap.put(target, source.save());
             objectsWithChildrenToMerge.add(source.getPrimitiveId());
         }
         return true;
@@ -423,6 +446,8 @@ public class DataSetMerger {
         if (progressMonitor != null) {
             progressMonitor.finishTask();
         }
+        
+        undoState = UndoState.MERGED;
     }
 
     /**
@@ -441,5 +466,60 @@ public class DataSetMerger {
      */
     public ConflictCollection getConflicts() {
         return conflicts;
+    }
+    
+    /**
+     * Undos the merge operation.
+     */
+    public void unmerge() {
+        if (undoState != UndoState.MERGED && undoState != UndoState.REDONE) {
+            throw new AssertionError();
+        }
+        
+        targetDataSet.beginUpdate();
+        
+        for (PrimitiveId osm : addedObjects) {
+            targetDataSet.removePrimitive(osm);
+        }
+        
+        for (Map.Entry<OsmPrimitive, PrimitiveData> e : changedObjectsMap.entrySet()) {
+            // restore previous state and save current state for opposite undo action
+            PrimitiveData old = e.getKey().save();
+            e.getKey().load(e.getValue());
+            e.setValue(old);
+        }
+        
+        targetDataSet.endUpdate();
+        undoState = UndoState.UNDONE;
+    }
+    
+    public void remerge() {
+        if (undoState != UndoState.UNDONE) {
+            throw new AssertionError();
+        }
+        
+        targetDataSet.beginUpdate();
+        
+        for (OsmPrimitive osm : addedObjects) {
+            targetDataSet.addPrimitive(osm);
+        }
+        
+        for (Map.Entry<OsmPrimitive, PrimitiveData> e : changedObjectsMap.entrySet()) {
+            // restore previous state and save current state for opposite undo action
+            PrimitiveData old = e.getKey().save();
+            e.getKey().load(e.getValue());
+            e.setValue(old);
+        }
+        
+        targetDataSet.endUpdate();
+        undoState = UndoState.REDONE;
+    }
+    
+    public Map<OsmPrimitive, PrimitiveData> getChangedObjectsMap() {
+        return changedObjectsMap;
+    }
+    
+    public Set<OsmPrimitive> getAddedObjects() {
+        return addedObjects;
     }
 }
