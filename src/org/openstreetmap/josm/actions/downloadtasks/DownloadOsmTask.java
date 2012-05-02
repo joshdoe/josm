@@ -10,6 +10,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.openstreetmap.josm.Main;
+import org.openstreetmap.josm.actions.AutoScaleAction;
+import org.openstreetmap.josm.command.DownloadOsmCommand;
 import org.openstreetmap.josm.data.Bounds;
 import org.openstreetmap.josm.data.coor.LatLon;
 import org.openstreetmap.josm.data.osm.DataSet;
@@ -207,9 +209,8 @@ public class DownloadOsmTask extends AbstractDownloadTask {
                 if (targetLayer == null) {
                     targetLayer = getFirstDataLayer();
                 }
-                targetLayer.mergeFrom(dataSet);
-                computeBboxAndCenterScale();
-                targetLayer.onPostDownloadFromServer();
+                Main.main.undoRedo.add(new DownloadOsmCommand(tr("Download primitives from bounding box"), targetLayer, dataSet));
+                AutoScaleAction.zoomTo(dataSet.allPrimitives());
             }
         }
         

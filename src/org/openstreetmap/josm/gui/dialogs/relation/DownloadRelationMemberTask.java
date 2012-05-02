@@ -13,6 +13,7 @@ import java.util.Set;
 import javax.swing.SwingUtilities;
 
 import org.openstreetmap.josm.Main;
+import org.openstreetmap.josm.command.DownloadOsmCommand;
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.Relation;
@@ -135,8 +136,7 @@ public class DownloadRelationMemberTask extends PleaseWaitRunnable {
             SwingUtilities.invokeLater(
                     new Runnable() {
                         public void run() {
-                            curLayer.mergeFrom(dataSet);
-                            curLayer.onPostDownloadFromServer();
+                            Main.main.undoRedo.add(new DownloadOsmCommand(tr("Download relation members"), curLayer, dataSet));
                         }
                     }
             );

@@ -99,7 +99,7 @@ public class OsmDataLayer extends Layer implements Listener, SelectionChangedLis
 
     public List<TestError> validationErrors = new ArrayList<TestError>();
 
-    protected void setRequiresSaveToFile(boolean newValue) {
+    public void setRequiresSaveToFile(boolean newValue) {
         boolean oldValue = requiresSaveToFile;
         requiresSaveToFile = newValue;
         if (oldValue != newValue) {
@@ -107,7 +107,7 @@ public class OsmDataLayer extends Layer implements Listener, SelectionChangedLis
         }
     }
 
-    protected void setRequiresUploadToServer(boolean newValue) {
+    public void setRequiresUploadToServer(boolean newValue) {
         boolean oldValue = requiresUploadToServer;
         requiresUploadToServer = newValue;
         if (oldValue != newValue) {
@@ -299,6 +299,7 @@ public class OsmDataLayer extends Layer implements Listener, SelectionChangedLis
     }
 
     @Override public void mergeFrom(final Layer from) {
+        // TODO: make undo-able
         final PleaseWaitProgressMonitor monitor = new PleaseWaitProgressMonitor(tr("Merging layers"));
         monitor.setCancelable(false);
         if (from instanceof OsmDataLayer && ((OsmDataLayer)from).isUploadDiscouraged()) {
@@ -314,6 +315,7 @@ public class OsmDataLayer extends Layer implements Listener, SelectionChangedLis
      *
      * @param from  the source data set
      */
+    @Deprecated
     public void mergeFrom(final DataSet from) {
         mergeFrom(from, null);
     }
@@ -324,6 +326,7 @@ public class OsmDataLayer extends Layer implements Listener, SelectionChangedLis
      *
      * @param from  the source data set
      */
+    @Deprecated
     public void mergeFrom(final DataSet from, ProgressMonitor progressMonitor) {
         final DataSetMerger visitor = new DataSetMerger(data,from);
         try {

@@ -10,6 +10,8 @@ import java.util.Collection;
 import java.util.Collections;
 
 import javax.swing.SwingUtilities;
+import org.openstreetmap.josm.Main;
+import org.openstreetmap.josm.command.DownloadOsmCommand;
 
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.DataSetMerger;
@@ -81,8 +83,7 @@ public class UpdatePrimitivesTask extends PleaseWaitRunnable {
         }
         Runnable r = new Runnable() {
             public void run() {
-                layer.mergeFrom(ds);
-                layer.onPostDownloadFromServer();
+                Main.main.undoRedo.add(new DownloadOsmCommand(tr("Update primitives"), layer, ds));
             }
         };
 

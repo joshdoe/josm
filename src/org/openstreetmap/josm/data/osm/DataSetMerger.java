@@ -493,6 +493,10 @@ public class DataSetMerger {
         undoState = UndoState.UNDONE;
     }
     
+    /**
+     * Re-merge objects with dataset. Identical results as {@see #merge()}, but performed
+     * after {@see #unmerge()} has been called.
+     */
     public void remerge() {
         if (undoState != UndoState.UNDONE) {
             throw new AssertionError();
@@ -500,7 +504,14 @@ public class DataSetMerger {
         
         targetDataSet.beginUpdate();
         
-        for (OsmPrimitive osm : addedObjects) {
+        // add back objects in order that they can be referenced by other objects
+        for (OsmPrimitive osm : OsmPrimitive.getFilteredList(addedObjects, Node.class)) {
+            targetDataSet.addPrimitive(osm);
+        }
+        for (OsmPrimitive osm : OsmPrimitive.getFilteredList(addedObjects, Way.class)) {
+            targetDataSet.addPrimitive(osm);
+        }
+        for (OsmPrimitive osm : OsmPrimitive.getFilteredList(addedObjects, Relation.class)) {
             targetDataSet.addPrimitive(osm);
         }
         

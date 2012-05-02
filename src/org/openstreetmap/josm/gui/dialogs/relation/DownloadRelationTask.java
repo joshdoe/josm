@@ -9,6 +9,7 @@ import java.util.Collection;
 import javax.swing.SwingUtilities;
 
 import org.openstreetmap.josm.Main;
+import org.openstreetmap.josm.command.DownloadOsmCommand;
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.DataSetMerger;
 import org.openstreetmap.josm.data.osm.Relation;
@@ -98,8 +99,7 @@ public class DownloadRelationTask extends PleaseWaitRunnable {
             SwingUtilities.invokeAndWait(
                     new Runnable() {
                         public void run() {
-                            layer.mergeFrom(allDownloads);
-                            layer.onPostDownloadFromServer();
+                            Main.main.undoRedo.add(new DownloadOsmCommand(tr("Download relation(s)"), layer, allDownloads));
                             Main.map.repaint();
                         }
                     }

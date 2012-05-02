@@ -13,6 +13,7 @@ import java.util.Collections;
 import javax.swing.JOptionPane;
 
 import org.openstreetmap.josm.Main;
+import org.openstreetmap.josm.command.DownloadOsmCommand;
 import org.openstreetmap.josm.data.osm.DataSet;
 import org.openstreetmap.josm.data.osm.OsmPrimitive;
 import org.openstreetmap.josm.data.osm.OsmPrimitiveType;
@@ -39,7 +40,7 @@ public class UpdateSelectionAction extends JosmAction {
         reader.append(getCurrentDataSet(),id, type);
         try {
             DataSet ds = reader.parseOsm(NullProgressMonitor.INSTANCE);
-            Main.map.mapView.getEditLayer().mergeFrom(ds);
+            Main.main.undoRedo.add(new DownloadOsmCommand(tr("Update selected primitives"), Main.map.mapView.getEditLayer(), ds));
         } catch(Exception e) {
             ExceptionDialogUtil.explainException(e);
         }

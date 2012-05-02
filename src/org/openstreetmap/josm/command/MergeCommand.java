@@ -54,6 +54,7 @@ public class MergeCommand extends Command {
      * @param selection
      */
     public MergeCommand(OsmDataLayer targetLayer, DataSet sourceDataSet, Collection<OsmPrimitive> selection) {
+        super(targetLayer);
         CheckParameterUtil.ensureParameterNotNull(targetLayer, "targetLayer");
         CheckParameterUtil.ensureParameterNotNull(sourceDataSet, "sourceDataSet");
         this.targetLayer = targetLayer;
@@ -67,7 +68,10 @@ public class MergeCommand extends Command {
             MergeSourceBuildingVisitor builder = new MergeSourceBuildingVisitor(sourceDataSet);
             this.sourceDataSet = builder.build();
             sourceDataSet.setSelected(origSelection);
+        } else {
+            this.sourceDataSet = sourceDataSet;
         }
+        
 
         addedConflicts = new HashSet<Conflict>();
         addedDataSources = new HashSet<DataSource>();
@@ -175,7 +179,7 @@ public class MergeCommand extends Command {
 
     @Override
     public String getDescriptionText() {
-        return tr(marktr("Merge objects, {0} added, {1} modified"),
+        return tr(marktr("Merged objects: {0} added, {1} modified"),
                 merger.getAddedObjects().size(),
                 merger.getChangedObjectsMap().size());
     }
@@ -183,5 +187,13 @@ public class MergeCommand extends Command {
     @Override
     public Icon getDescriptionIcon() {
         return ImageProvider.get("dialogs", "mergedown");
+    }
+    
+    @Override
+    public Collection<? extends OsmPrimitive> getParticipatingPrimitives() {
+        HashSet<OsmPrimitive> prims = new HashSet<OsmPrimitive>();
+        prims.addAll(merger.getAddedObjects());
+        prims.addAll(merger.getChangedObjectsMap().keySet());
+        return prims;
     }
 }
