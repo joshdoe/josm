@@ -192,8 +192,8 @@ public class DataSetMerger {
                 List<OsmPrimitive> referrers = target.getReferrers();
                 if (referrers.isEmpty()) {
                     target.setDeleted(true);
-                    target.mergeFrom(source);
-                    changedObjectsMap.put(target, source.save());
+                    if (target.mergeFrom(source))
+                        changedObjectsMap.put(target, source.save());
                     it.remove();
                     flag = true;
                 } else {
@@ -225,8 +225,8 @@ public class DataSetMerger {
             for (OsmPrimitive target: objectsToDelete) {
                 OsmPrimitive source = sourceDataSet.getPrimitiveById(target.getPrimitiveId());
                 target.setDeleted(true);
-                target.mergeFrom(source);
-                changedObjectsMap.put(target, source.save());
+                if (target.mergeFrom(source))
+                    changedObjectsMap.put(target, source.save());
             }
         }
     }
@@ -308,8 +308,8 @@ public class DataSetMerger {
             // target is incomplete, source completes it
             // => merge source into target
             //
-            target.mergeFrom(source);
-            changedObjectsMap.put(target, source.save());
+            if (target.mergeFrom(source))
+                changedObjectsMap.put(target, source.save());
             objectsWithChildrenToMerge.add(source.getPrimitiveId());
         } else if (!target.isIncomplete() && source.isIncomplete()) {
             // target is complete and source is incomplete
@@ -347,20 +347,20 @@ public class DataSetMerger {
         } else if (! target.isModified() && source.isModified()) {
             // target not modified. We can assume that source is the most recent version.
             // clone it into target.
-            target.mergeFrom(source);
-            changedObjectsMap.put(target, source.save());
+            if (target.mergeFrom(source))
+                changedObjectsMap.put(target, source.save());
             objectsWithChildrenToMerge.add(source.getPrimitiveId());
         } else if (! target.isModified() && !source.isModified() && target.getVersion() == source.getVersion()) {
             // both not modified. Merge nevertheless.
             // This helps when updating "empty" relations, see #4295
-            target.mergeFrom(source);
-            changedObjectsMap.put(target, source.save());
+            if (target.mergeFrom(source))
+                changedObjectsMap.put(target, source.save());
             objectsWithChildrenToMerge.add(source.getPrimitiveId());
         } else if (! target.isModified() && !source.isModified() && target.getVersion() < source.getVersion()) {
             // my not modified but other is newer. clone other onto mine.
             //
-            target.mergeFrom(source);
-            changedObjectsMap.put(target, source.save());
+            if (target.mergeFrom(source))
+                changedObjectsMap.put(target, source.save());
             objectsWithChildrenToMerge.add(source.getPrimitiveId());
         } else if (target.isModified() && ! source.isModified() && target.getVersion() == source.getVersion()) {
             // target is same as source but target is modified
@@ -384,8 +384,8 @@ public class DataSetMerger {
             // technical attributes like timestamp or user information. Semantic
             // attributes should already be equal if we get here.
             //
-            target.mergeFrom(source);
-            changedObjectsMap.put(target, source.save());
+            if (target.mergeFrom(source))
+                changedObjectsMap.put(target, source.save());
             objectsWithChildrenToMerge.add(source.getPrimitiveId());
         }
         return true;
