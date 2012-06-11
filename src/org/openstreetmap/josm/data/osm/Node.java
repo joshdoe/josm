@@ -206,21 +206,25 @@ public final class Node extends OsmPrimitive implements INode {
      * have an assigend OSM id, the IDs have to be the same.
      *
      * @param other the other primitive. Must not be null.
+     * @return true if the semantic or technical attributes were changed
      * @throws IllegalArgumentException thrown if other is null.
      * @throws DataIntegrityProblemException thrown if either this is new and other is not, or other is new and this is not
      * @throws DataIntegrityProblemException thrown if other is new and other.getId() != this.getId()
      */
     @Override
-    public void mergeFrom(OsmPrimitive other) {
+    public boolean mergeFrom(OsmPrimitive other) {
+        boolean changed;
         boolean locked = writeLock();
         try {
-            super.mergeFrom(other);
-            if (!other.isIncomplete()) {
+            changed = super.mergeFrom(other);
+            if (!other.isIncomplete() && !getCoor().equals(((Node)other).getCoor())) {
                 setCoor(((Node)other).getCoor());
+                changed = true;
             }
         } finally {
             writeUnlock(locked);
         }
+        return changed;
     }
 
     @Override public void load(PrimitiveData data) {

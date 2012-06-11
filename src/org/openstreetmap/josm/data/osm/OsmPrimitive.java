@@ -926,14 +926,18 @@ abstract public class OsmPrimitive extends AbstractPrimitive implements Comparab
      * Merges the technical and semantical attributes from <code>other</code> onto this.
      *
      * Both this and other must be new, or both must be assigned an OSM ID. If both this and <code>other</code>
-     * have an assigend OSM id, the IDs have to be the same.
+     * have an assigned OSM id, the IDs have to be the same.
      *
      * @param other the other primitive. Must not be null.
+     * @return true if the semantic or technical attributes were changed
      * @throws IllegalArgumentException thrown if other is null.
      * @throws DataIntegrityProblemException thrown if either this is new and other is not, or other is new and this is not
      * @throws DataIntegrityProblemException thrown if other isn't new and other.getId() != this.getId()
      */
-    public void mergeFrom(OsmPrimitive other) {
+    public boolean mergeFrom(OsmPrimitive other) {
+        if (hasEqualSemanticAttributes(other) && hasEqualTechnicalAttributes(other))
+            return false;
+
         boolean locked = writeLock();
         try {
             CheckParameterUtil.ensureParameterNotNull(other, "other");
@@ -952,6 +956,7 @@ abstract public class OsmPrimitive extends AbstractPrimitive implements Comparab
         } finally {
             writeUnlock(locked);
         }
+        return true;
     }
 
     /**
