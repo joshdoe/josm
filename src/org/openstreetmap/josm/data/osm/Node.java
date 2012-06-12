@@ -217,7 +217,7 @@ public final class Node extends OsmPrimitive implements INode {
         boolean locked = writeLock();
         try {
             changed = super.mergeFrom(other);
-            if (!other.isIncomplete() && !getCoor().equals(((Node)other).getCoor())) {
+            if (!other.isIncomplete() && !((Node)other).getCoor().equals((getCoor()))) {
                 setCoor(((Node)other).getCoor());
                 changed = true;
             }
